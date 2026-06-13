@@ -1,0 +1,56 @@
+# Example: Building a User Authentication System
+# PM project with architectural dependencies
+
+stories:
+  - id: "epic-1.1"
+    title: "User model with email and password_hash"
+    explicit_deps: []
+    file_scope: ["src/models/user.py"]
+    interfaces_provides: ["User", "UserCreate", "UserResponse"]
+
+  - id: "epic-1.2"
+    title: "Password hashing and validation utility"
+    explicit_deps: []
+    file_scope: ["src/auth/hash.py", "src/auth/validation.py"]
+    interfaces_provides: ["PasswordHasher", "PasswordValidator"]
+
+  - id: "epic-1.3"
+    title: "User registration API endpoint"
+    explicit_deps: ["epic-1.1", "epic-1.2"]
+    file_scope: ["src/api/register.py", "src/api/schemas.py"]
+    consumes_interfaces: ["User", "UserCreate", "PasswordHasher"]
+    interfaces_provides: ["RegisterHandler"]
+
+  - id: "epic-1.4"
+    title: "Login endpoint with JWT token generation"
+    explicit_deps: ["epic-1.1"]
+    file_scope: ["src/api/login.py", "src/auth/jwt.py"]
+    consumes_interfaces: ["User", "UserResponse"]
+    interfaces_provides: ["LoginHandler", "TokenService"]
+
+  - id: "epic-1.5"
+    title: "Session management and token refresh"
+    explicit_deps: ["epic-1.4"]
+    file_scope: ["src/auth/session.py"]
+    consumes_interfaces: ["TokenService", "User"]
+    interfaces_provides: ["SessionManager"]
+
+  - id: "epic-2.1"
+    title: "User profile read endpoint"
+    explicit_deps: ["epic-1.1", "epic-1.4"]
+    file_scope: ["src/api/profile.py"]
+    consumes_interfaces: ["User", "UserResponse", "TokenService"]
+    interfaces_provides: ["ProfileHandler"]
+
+  - id: "epic-2.2"
+    title: "Admin user management UI"
+    explicit_deps: ["epic-2.1", "epic-1.3"]
+    file_scope: ["src/admin/users.py", "src/admin/templates/users.html"]
+    consumes_interfaces: ["User", "UserResponse", "ProfileHandler"]
+
+  - id: "epic-2.3"
+    title: "Email verification flow"
+    explicit_deps: ["epic-1.3"]
+    file_scope: ["src/api/verify.py", "src/auth/email.py"]
+    consumes_interfaces: ["User", "RegisterHandler"]
+    interfaces_provides: ["EmailVerifier", "VerificationHandler"]

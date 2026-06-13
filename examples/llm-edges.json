@@ -1,0 +1,6 @@
+{
+  "edges": [
+    {"from": "epic-1.5", "to": "epic-2.1", "reasoning": "SessionManager (epic-1.5) manages tokens used by ProfileHandler (epic-2.1)", "confidence": "medium"},
+    {"from": "epic-2.3", "to": "epic-2.1", "reasoning": "Email verification status read by profile", "confidence": "low"}
+  ]
+}
