@@ -13,6 +13,9 @@ Topics researched for the Team Topologies × BMAD × DAG Automator convergence p
 | 3 | **Project to Product (Kersten) + Flow Metrics** | `project-to-product-flow-metrics.md` | 19KB | Research report |
 | 4 | **Business Process Modelling (BPMN/DMN/CMMN)** | `bpm-converged-framework.md` | 25KB | Research report |
 
+| 5 | **OOP + SOLID + GoF Design Patterns** | `oop-solid-gof-patterns.md` | 42KB | Research report |
+| 6 | **BFF + UI Component Design + UX + Micro Frontends** | `bff-ui-ux-microfrontends.md` | 32KB | Research report |
+
 ## Pre-existing Reference Material (in repo)
 
 | Topic | Location |
