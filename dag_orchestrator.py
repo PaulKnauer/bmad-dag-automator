@@ -268,7 +268,13 @@ class DagOrchestrator:
         if self.resume:
             state_path = os.path.join(self.output_dir, "orchestration.md")
             manifest_path = os.path.join(self.output_dir, "dag-manifest.yaml")
-            resume_level = self._find_resume_point(state_path, manifest_path)
+            resume_level = None
+            resume_error = None
+            try:
+                resume_level = self._find_resume_point(state_path, manifest_path)
+            except (FileNotFoundError, ValueError) as e:
+                resume_error = str(e)
+
             if resume_level is not None:
                 self._resume_from_level = resume_level
                 print(f"     ⏯️  Resuming from Level {resume_level}", flush=True)
@@ -276,6 +282,8 @@ class DagOrchestrator:
                 self.state = DagStateDoc.load(state_path)
                 self.state.mark_resumed(resume_level, "resume via --resume flag")
                 self.state.save(os.path.join(self.output_dir, "orchestration.md"))
+            elif resume_error:
+                print(f"     ⚠️  {resume_error}. Starting fresh.", flush=True)
             else:
                 print(f"     ✅ Prior run already complete — nothing to do", flush=True)
                 return {"status": "complete", "message": "Prior run already complete"}
