@@ -52,7 +52,7 @@ stories:
   - id: "S4"
     title: "Performance benchmarking harness"
     dependencies: ["S3"]
-    status: pending
+    status: completed
     file_scope: ["benchmarks/"]
     description: >
       Create benchmark harness to measure:
