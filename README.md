@@ -4,6 +4,24 @@ DAG-aware autonomous agent orchestration — extends BMAD with topological depen
 
 **Tests:** 52 passing (17 core + 8 resume + 9 validator + 12 failure + 6 benchmarks)
 
+## Quick Install
+
+```bash
+git clone https://github.com/nousresearch/bmad-dag-automator.git
+cd bmad-dag-automator
+python dag_scheduler.py validate examples/auth-system.yaml   # check it works
+```
+
+> **📖 Full install walkthrough:** [INSTALL.md](INSTALL.md) — covers dependencies, virtualenv setup, and troubleshooting.
+
+## Getting Started
+
+New to the DAG Automator? Start with the beginner's guide:
+
+- **[GETTING_STARTED.md](GETTING_STARTED.md)** — step-by-step walkthrough with the auth system example
+- Validate a story set: `python dag_scheduler.py validate examples/auth-system.yaml`
+- Dry-run full orchestration: `python dag_scheduler.py orchestrate examples/auth-system.yaml --dry-run`
+
 ---
 
 ## Flow
@@ -49,65 +67,55 @@ python dag_scheduler.py --mode minimal orchestrate examples/auth-system.yaml --d
 
 ## CLI Reference
 
-### `validate` — Validate story YAML
+All commands are run via `dag_scheduler.py`. Six subcommands available:
+
+### `validate` — Validate story YAML for structural correctness
 ```bash
 python dag_scheduler.py validate examples/auth-system.yaml
 ```
-Checks: dangling refs, cycles, explicit dep stats. Exit code 0 = valid.
+Checks: dangling refs, cycles, dep stats. Exit code 0 = valid.
 
-### `schedule` — Build DAG and schedule execution
+### `schedule` — Build topological DAG and generate execution manifest
 ```bash
-python dag_scheduler.py --mode automatic schedule examples/auth-system.yaml
-python dag_scheduler.py --mode assisted schedule examples/auth-system.yaml --llm-output edges.json
+python dag_scheduler.py schedule examples/auth-system.yaml --mode automatic
 ```
-Outputs `dag-manifest.yaml` with levels, critical path, and node metadata.
+Outputs `dag-manifest.yaml` with levels, critical path, node metadata.
 
-### `orchestrate` — Run full DAG orchestrator
+### `orchestrate` — Run the full DAG orchestrator (live or dry-run)
 ```bash
-# Dry run (no tmux, no git)
 python dag_scheduler.py orchestrate examples/auth-system.yaml --dry-run
-
-# Live run with claude-code
-python dag_scheduler.py orchestrate examples/auth-system.yaml \
-    --project /path/to/project \
-    --mode automatic \
-    --agent claude-code \
-    --model sonnet \
-    --max-concurrent 4
-
-# Resume from last incomplete level
-python dag_scheduler.py orchestrate examples/auth-system.yaml \
-    --project /path/to/project --resume
+python dag_scheduler.py orchestrate examples/auth-system.yaml --project . --agent claude-code --resume
 ```
+Full flags: `--project`, `--mode`, `--agent`, `--model`, `--max-concurrent`, `--dry-run`, `--resume`.
 
-### `validate-dag` — Validate DAG consistency from prior run
+### `validate-dag` — Validate DAG consistency from a prior run's artifacts
 ```bash
 python dag_scheduler.py validate-dag --project /path/to/project
 ```
-Checks: manifest vs state doc, orphaned nodes, node existence, level boundaries.
-Output:
-```
-  ✅ DAG Validation: PASS
-  ──────────────────────────────────────────────────
-  PASS — 4 passed
+Checks: manifest vs state doc, orphaned nodes, node existence, level boundaries. Exit: 0=PASS, 1=FAIL, 2=WARN.
 
-  ✅ Manifest vs State Doc    · 8 nodes, 4 levels
-  ✅ Orphaned Nodes           · All 8 completed nodes exist in manifest
-  ✅ Node Existence           · All 8 node(s) resolved
-  ✅ Level Boundaries         · Level 0: 2/2 ✅  Level 1: 2/2 ✅
-```
-Exit code: 0 = PASS, 1 = FAIL, 2 = WARN.
-
-### `inspect` — Show full DAG internal state
+### `inspect` — Dump full DAG internal state as YAML
 ```bash
 python dag_scheduler.py inspect examples/auth-system.yaml
 ```
-Dumps the complete DAG as YAML (nodes, edges, levels, status).
+Shows all nodes, edges, levels, and status in a single output.
 
-### `apply-llm` — Apply LLM edge suggestions
+### `apply-llm` — Apply LLM-generated edge suggestions from stdin
 ```bash
 cat llm_output.json | python dag_scheduler.py apply-llm examples/auth-system.yaml
 ```
+Applies inferred dependencies without re-running the LLM.
+
+---
+
+## Documentation Map
+
+| Document | Audience | Purpose |
+|----------|----------|---------|
+| [INSTALL.md](INSTALL.md) | New users | Step-by-step installation guide |
+| [GETTING_STARTED.md](GETTING_STARTED.md) | Beginners | First-time walkthrough with the auth system |
+| [OPERATIONS_GUIDE.md](OPERATIONS_GUIDE.md) | Operators / Devs | In-depth CLI reference, config, production tips |
+| [TESTING_GUIDE.md](TESTING_GUIDE.md) | Contributors | Test suite reference, patterns, CI notes |
 
 ---
 
