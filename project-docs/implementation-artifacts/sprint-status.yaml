@@ -25,7 +25,7 @@ stories:
   - id: "S2"
     title: "Validate mode — DAG consistency checking"
     dependencies: []
-    status: pending
+    status: completed
     file_scope: ["dag_scheduler.py", "dag_core.py", "state_doc.py"]
     description: >
       Add `validate --dag` subcommand that checks:
