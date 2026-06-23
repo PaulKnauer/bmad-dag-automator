@@ -12,13 +12,13 @@ cd bmad-dag-automator
 python dag_scheduler.py validate examples/auth-system.yaml   # check it works
 ```
 
-> **📖 Full install walkthrough:** [INSTALL.md](INSTALL.md) — covers dependencies, virtualenv setup, and troubleshooting.
+> **📖 Full install walkthrough:** [INSTALL.md](https://github.com/PaulKnauer/bmad-dag-automator/blob/main/INSTALL.md) — covers dependencies, virtualenv setup, and troubleshooting.
 
 ## Getting Started
 
 New to the DAG Automator? Start with the beginner's guide:
 
-- **[GETTING_STARTED.md](GETTING_STARTED.md)** — step-by-step walkthrough with the auth system example
+- **[GETTING_STARTED.md](https://github.com/PaulKnauer/bmad-dag-automator/blob/main/GETTING_STARTED.md)** — step-by-step walkthrough with the auth system example
 - Validate a story set: `python dag_scheduler.py validate examples/auth-system.yaml`
 - Dry-run full orchestration: `python dag_scheduler.py orchestrate examples/auth-system.yaml --dry-run`
 
@@ -112,10 +112,10 @@ Applies inferred dependencies without re-running the LLM.
 
 | Document | Audience | Purpose |
 |----------|----------|---------|
-| [INSTALL.md](INSTALL.md) | New users | Step-by-step installation guide |
-| [GETTING_STARTED.md](GETTING_STARTED.md) | Beginners | First-time walkthrough with the auth system |
-| [OPERATIONS_GUIDE.md](OPERATIONS_GUIDE.md) | Operators / Devs | In-depth CLI reference, config, production tips |
-| [TESTING_GUIDE.md](TESTING_GUIDE.md) | Contributors | Test suite reference, patterns, CI notes |
+| [INSTALL.md](https://github.com/PaulKnauer/bmad-dag-automator/blob/main/INSTALL.md) | New users | Step-by-step installation guide |
+| [GETTING_STARTED.md](https://github.com/PaulKnauer/bmad-dag-automator/blob/main/GETTING_STARTED.md) | Beginners | First-time walkthrough with the auth system |
+| [OPERATIONS_GUIDE.md](https://github.com/PaulKnauer/bmad-dag-automator/blob/main/OPERATIONS_GUIDE.md) | Operators / Devs | In-depth CLI reference, config, production tips |
+| [TESTING_GUIDE.md](https://github.com/PaulKnauer/bmad-dag-automator/blob/main/TESTING_GUIDE.md) | Contributors | Test suite reference, patterns, CI notes |
 
 ---
 
