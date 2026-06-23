@@ -1,0 +1,102 @@
+# Sprint Status — BMAD DAG Automator
+# Phase 5: Production Hardening
+
+epic: bmad-dag-automator
+epicName: "BMAD DAG Automator — Phase 5: Production Hardening"
+status: INITIALIZING
+generatedAt: "2026-06-23T20:55:00Z"
+lastUpdated: "2026-06-23T20:55:00Z"
+mode: minimal
+maxParallel: 1
+maxRetries: 2
+
+stories:
+  - id: "S1"
+    title: "Resume from any DAG level"
+    dependencies: []
+    status: pending
+    file_scope: ["dag_orchestrator.py", "state_doc.py"]
+    description: >
+      Current orchestrator processes from level 0 every run.
+      Add resume capability: detect last completed level from state doc,
+      skip already-completed levels, resume from next incomplete level.
+      Must validate DAG manifest consistency before resuming.
+
+  - id: "S2"
+    title: "Validate mode — DAG consistency checking"
+    dependencies: []
+    status: pending
+    file_scope: ["dag_scheduler.py", "dag_core.py", "state_doc.py"]
+    description: >
+      Add `validate --dag` subcommand that checks:
+      - State doc matches current DAG manifest
+      - No orphaned nodes from aborted runs
+      - All referenced nodes exist in graph
+      - Previous level boundaries are consistent
+
+  - id: "S3"
+    title: "Failure injection test suite"
+    dependencies: []
+    status: pending
+    file_scope: ["tests/test_failure_modes.py"]
+    description: >
+      Systematic test coverage for failure scenarios:
+      - Single node failure with retry
+      - Multi-node failure exhausting retries
+      - Critical path node failure → fallback agent
+      - Level-wide failure → graph abort
+      - Artifact merge conflict at level boundary
+      - tmux spawn failure
+      - Git state isolation conflicts
+
+  - id: "S4"
+    title: "Performance benchmarking harness"
+    dependencies: ["S3"]
+    status: pending
+    file_scope: ["benchmarks/"]
+    description: >
+      Create benchmark harness to measure:
+      - Time saved vs linear execution for same story set
+      - Agent utilisation % per level
+      - Pool spin-up latency per level
+      - Merge overhead at level boundaries
+      - Report format: table + recommendations
+
+  - id: "S5"
+    title: "Edge case hardening"
+    dependencies: ["S1"]
+    status: pending
+    file_scope: ["agent_pool.py", "artifact_bridge.py", "dag_orchestrator.py"]
+    description: >
+      Harden against real-world edge cases:
+      - tmux unavailable (graceful degradation)
+      - Git worktree conflicts (parallel node collisions)
+      - Empty story list
+      - Single-story sprint
+      - Max depth DAG (50+ levels)
+      - Graceful shutdown on interrupt
+
+  - id: "S6"
+    title: "Project documentation update"
+    dependencies: ["S1", "S2", "S5"]
+    status: pending
+    file_scope: ["README.md", "dossiers/", "project-context.md"]
+    description: >
+      Update project docs to reflect Phase 5 capabilities:
+      - Resume workflow documented
+      - Validate mode documented
+      - Known limitations & workarounds
+      - Example usage for each CLI command
+      - Benchmark results in README
+
+  - id: "S7"
+    title: "Package as BMAD community module"
+    dependencies: ["S6"]
+    status: pending
+    file_scope: ["_bmad/"]
+    description: >
+      Package the DAG Automator as a standard BMAD module:
+      - Module manifest (module.yaml)
+      - BMAD-compatible SKILL.md launcher
+      - Integration with BMAD's existing module lifecycle
+      - PR to bmad-code-org/bmad-dag-automator
