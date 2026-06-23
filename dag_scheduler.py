@@ -246,6 +246,21 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_validate_dag(args: argparse.Namespace) -> int:
+    """Validate DAG consistency from prior run artifacts."""
+    from dag_validator import DagValidator
+
+    project_root = os.path.abspath(args.project)
+    output_dir = os.path.join(project_root, "_bmad-output", "dag-automator")
+    manifest_path = os.path.join(output_dir, "dag-manifest.yaml")
+    state_path = os.path.join(output_dir, "orchestration.md")
+
+    validator = DagValidator()
+    report = validator.validate_all(manifest_path, state_path)
+    validator.print_report(report)
+    return report["exit_code"]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="BMAD DAG Scheduler")
     parser.add_argument("--mode", choices=["minimal", "assisted", "automatic"],
@@ -264,6 +279,12 @@ def main() -> int:
     p_val = sub.add_parser("validate", help="Validate story YAML without scheduling")
     p_val.add_argument("stories_file", help="YAML/JSON file with story list")
     p_val.set_defaults(func=cmd_validate)
+
+    # validate-dag
+    p_val_dag = sub.add_parser("validate-dag", help="Validate DAG consistency from prior run artifacts")
+    p_val_dag.add_argument("--project", "-p", default=".",
+                           help="Project root directory (default: current dir)")
+    p_val_dag.set_defaults(func=cmd_validate_dag)
 
     # apply-llm
     p_llm = sub.add_parser("apply-llm", help="Apply LLM edges from stdin to stories file")

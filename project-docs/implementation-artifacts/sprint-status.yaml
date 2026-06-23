@@ -14,7 +14,7 @@ stories:
   - id: "S1"
     title: "Resume from any DAG level"
     dependencies: []
-    status: pending
+    status: completed
     file_scope: ["dag_orchestrator.py", "state_doc.py"]
     description: >
       Current orchestrator processes from level 0 every run.
