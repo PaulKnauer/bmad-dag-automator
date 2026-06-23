@@ -28,6 +28,7 @@ DAG-aware autonomous agent orchestration tool. Extends the BMAD methodology with
 | `agent_pool.py` | Elastic tmux session manager (scales per DAG level width) |
 | `artifact_bridge.py` | Git branch-per-level management |
 | `state_doc.py` | Markdown state document (human + machine readable) |
+| `dag_validator.py` | DAG consistency checks — manifest vs state, orphans, boundaries |
 
 ## 3. Language & Style Rules
 
@@ -75,6 +76,15 @@ python dag_scheduler.py --mode minimal schedule examples/auth-system.yaml
 
 # Full dry-run orchestrator (no tmux, no git)
 python dag_scheduler.py --mode minimal orchestrate examples/auth-system.yaml --dry-run
+
+# Resume from last incomplete level
+python dag_scheduler.py orchestrate examples/auth-system.yaml --project . --resume
+
+# Validate DAG consistency from prior run
+python dag_scheduler.py validate-dag --project .
+
+# Run scheduling benchmarks
+python benchmarks/bench_dag.py
 ```
 
 ## 6. Testing Rules
@@ -86,6 +96,16 @@ python dag_scheduler.py --mode minimal orchestrate examples/auth-system.yaml --d
 - **Pattern:** pure unit tests — no mocking, no fixtures, no external dependencies
 - **No coverage tool configured**
 - **Edge cases tested:** single node, empty graph, self-dependency, elastic allocation
+- **52 tests total:** 17 core + 8 resume + 9 validator + 12 failure modes + 6 benchmarks
+- **Test files:**
+
+  | Test file | Tests | Covers |
+  |-----------|-------|--------|
+  | `tests/test_dag_core.py` | 17 | Core algorithms |
+  | `tests/test_resume.py` | 8 | Resume from any level |
+  | `tests/test_validator.py` | 9 | DAG consistency checks |
+  | `tests/test_failure_modes.py` | 12 | Failure injection + edge cases |
+  | `tests/test_benchmarks.py` | 6 | Benchmark harness shapes |
 
 ## 7. BMAD Workflow Rules
 
@@ -95,7 +115,18 @@ python dag_scheduler.py --mode minimal orchestrate examples/auth-system.yaml --d
 - **YAML specs** define DAG schedules before coding
 - **Examples directory** (`examples/`) contains reference YAML/JSON schedules
 
-## 8. Security
+## 8. Implementation Status
+
+| Phase | Deliverable | Status |
+|-------|-------------|--------|
+| **1 — DAG Induction** | Core data model, induction pipeline, CLI | ✅ Built & tested |
+| **2 — Level Scheduler** | Topological sort, level execution loop | ✅ Built |
+| **3 — Artifact Bridge** | Branch-per-level git model, merge | ✅ Built |
+| **4 — Elastic Agent Pool** | Dynamic pool, tmux lifecycle, retry chains | ✅ Built |
+| **5 — Production Hardening** | Resume, validate, edge cases, benchmarks | ✅ Built |
+| **6 — Community Contribution** | BMAD module packaging, PR to bmad-code-org | 🔜 Planned |
+
+## 9. Security
 
 - No auth, secrets, credentials, or network calls in this project
 - Local-only orchestration tool (reads YAML, spawns tmux, manages git branches)

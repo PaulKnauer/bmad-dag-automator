@@ -79,7 +79,7 @@ stories:
   - id: "S6"
     title: "Project documentation update"
     dependencies: ["S1", "S2", "S5"]
-    status: pending
+    status: completed
     file_scope: ["README.md", "dossiers/", "project-context.md"]
     description: >
       Update project docs to reflect Phase 5 capabilities:
