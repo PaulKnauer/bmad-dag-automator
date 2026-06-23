@@ -54,6 +54,10 @@ class DagOrchestrator:
         self.bridge: Optional[ArtifactBridge] = None
         self.state: Optional[DagStateDoc] = None
 
+        # Resume support
+        self.resume: bool = False
+        self._resume_from_level: Optional[int] = None
+
         # Runtime state
         self._stories: list[dict] = []
         self._failed_nodes: list[dict] = []
@@ -140,6 +144,82 @@ class DagOrchestrator:
             "applied_edges": applied_edges,
         }
 
+    def _find_resume_point(self, state_path: str, manifest_path: str) -> Optional[int]:
+        """Determine the DAG level to resume from.
+
+        Loads the prior state doc and current DAG manifest, validates
+        consistency, and returns the level index to start from (first
+        incomplete level). Returns None if the prior run is already
+        complete.
+
+        Args:
+            state_path: Path to the existing orchestration.md.
+            manifest_path: Path to the existing dag-manifest.yaml.
+
+        Returns:
+            Level index to resume from, or None if already complete.
+
+        Raises:
+            FileNotFoundError: If state doc or manifest is missing.
+            ValueError: If story count or level structure differs.
+        """
+        # Load prior state
+        state = DagStateDoc.load(state_path)
+        completed_count = len(state.completed_nodes)
+
+        # Load prior manifest for comparison
+        if not os.path.exists(manifest_path):
+            raise FileNotFoundError(
+                f"Manifest not found at {manifest_path} — "
+                f"cannot resume without a prior DAG manifest"
+            )
+
+        with open(manifest_path) as f:
+            prior_manifest = yaml.safe_load(f)
+
+        prior_node_count = len(
+            prior_manifest.get("nodes", {})
+        ) if isinstance(prior_manifest, dict) else 0
+        prior_level_count = len(
+            prior_manifest.get("dag", {}).get("levels", [])
+        ) if isinstance(prior_manifest, dict) else 0
+
+        current_node_count = len(self.graph.nodes) if self.graph else 0
+        current_level_count = len(self.graph.levels) if self.graph else 0
+
+        # Consistency check
+        if prior_node_count != current_node_count:
+            raise ValueError(
+                f"Story count mismatch: prior run had {prior_node_count} nodes, "
+                f"current run has {current_node_count}. Cannot resume."
+            )
+        if prior_level_count != current_level_count:
+            raise ValueError(
+                f"Level structure changed: prior run had {prior_level_count} levels, "
+                f"current has {current_level_count}. Cannot resume."
+            )
+
+        # Determine resume point
+        if completed_count >= current_node_count:
+            return None  # Already complete
+
+        # Resume from the first level that has any incomplete nodes
+        prior_levels = prior_manifest.get("dag", {}).get("levels", [])
+        for level_info in prior_levels:
+            level_idx = level_info.get("index", 0)
+            level_nodes = level_info.get("nodes", [])
+            all_completed = all(
+                any(
+                    cn.get("id") == nid and cn.get("status") == "completed"
+                    for cn in state.completed_nodes
+                )
+                for nid in level_nodes
+            )
+            if not all_completed:
+                return level_idx
+
+        return None  # All levels complete
+
     def run_dag(self, architecture_context: str = "",
                 llm_edges_path: Optional[str] = None,
                 agent_tool: str = "claude-code",
@@ -184,6 +264,22 @@ class DagOrchestrator:
             model=agent_model,
         )
 
+        # Resume detection — skip already-completed levels
+        if self.resume:
+            state_path = os.path.join(self.output_dir, "orchestration.md")
+            manifest_path = os.path.join(self.output_dir, "dag-manifest.yaml")
+            resume_level = self._find_resume_point(state_path, manifest_path)
+            if resume_level is not None:
+                self._resume_from_level = resume_level
+                print(f"     ⏯️  Resuming from Level {resume_level}", flush=True)
+                # Reload prior state doc to extend it
+                self.state = DagStateDoc.load(state_path)
+                self.state.mark_resumed(resume_level, "resume via --resume flag")
+                self.state.save(os.path.join(self.output_dir, "orchestration.md"))
+            else:
+                print(f"     ✅ Prior run already complete — nothing to do", flush=True)
+                return {"status": "complete", "message": "Prior run already complete"}
+
         # Initialize git
         if not self.dry_run:
             try:
@@ -195,7 +291,12 @@ class DagOrchestrator:
         failed_nodes_per_level: list[tuple[int, str, str]] = []
 
         for level_idx, level in enumerate(self.graph.levels):
-            print(f"\n  📐 Level {level_idx}: {level.width} node(s)")
+            # Skip levels that were already completed in a prior resume run
+            if self._resume_from_level is not None and level_idx < self._resume_from_level:
+                print(f"     ⏭️  Level {level_idx}: skipped (completed in prior run)")
+                continue
+
+            print(f"  📐 Level {level_idx}: {level.width} node(s)")
             level_nodes = [self.graph.nodes[nid] for nid in level.node_ids]
 
             # Prepare git branch for this level

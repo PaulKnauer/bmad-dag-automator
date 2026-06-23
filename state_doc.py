@@ -194,6 +194,78 @@ class DagStateDoc:
         )
         return doc
 
+    @staticmethod
+    def load(filepath: str) -> "DagStateDoc":
+        """Load an existing state document from disk.
+
+        Parses the YAML frontmatter block (between ``---`` delimiters)
+        and reconstructs a DagStateDoc instance.
+
+        Args:
+            filepath: Path to an existing orchestration.md state doc.
+
+        Returns:
+            A DagStateDoc instance with prior run state populated.
+
+        Raises:
+            FileNotFoundError: If the file doesn't exist.
+            ValueError: If the frontmatter can't be parsed.
+        """
+        import yaml
+
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"State doc not found: {filepath}")
+
+        with open(filepath) as f:
+            content = f.read()
+
+        # Extract YAML frontmatter (between first two --- delimiters)
+        parts = content.split("---", 2)
+        if len(parts) < 3:
+            raise ValueError(
+                f"State doc has no valid YAML frontmatter: {filepath}"
+            )
+
+        raw = yaml.safe_load(parts[1])
+        if not isinstance(raw, dict):
+            raise ValueError(f"Frontmatter is not a dict in: {filepath}")
+
+        # Decode DagRunStatus
+        status_raw = raw.get("status", "INITIALIZING")
+        try:
+            status = DagRunStatus(status_raw)
+        except ValueError:
+            status = DagRunStatus.INITIALIZING
+
+        doc = DagStateDoc(
+            epic=raw.get("epic", ""),
+            epic_name=raw.get("epicName", ""),
+            status=status,
+            generated_at=raw.get("generatedAt", ""),
+            last_updated=raw.get("lastUpdated", ""),
+
+            dag_enabled=raw.get("dagEnabled", True),
+            dag_manifest_path=raw.get("dagManifestPath", ""),
+            dag_current_level=raw.get("dagCurrentLevel", 0),
+            dag_total_levels=raw.get("dagTotalLevels", 0),
+            dag_max_width=raw.get("dagMaxWidth", 0),
+            dag_pool_size=raw.get("dagPoolSize", 0),
+            dag_status=raw.get("dagStatus", "init"),
+            dag_critical_path=raw.get("dagCriticalPath", []),
+            dag_mode=raw.get("dagMode", "automatic"),
+
+            current_node=raw.get("currentNode", ""),
+            current_level=raw.get("currentLevel", 0),
+            steps_completed=raw.get("stepsCompleted", []),
+            completed_nodes=raw.get("completedNodes", []),
+            failed_nodes=raw.get("failedNodes", []),
+            active_sessions=raw.get("activeSessions", []),
+
+            output_dir=raw.get("outputDir", os.path.dirname(filepath)),
+            agent_config=raw.get("agentConfig", {}),
+        )
+        return doc
+
     def record_level_complete(self, level_index: int, results: list[dict]) -> None:
         """Record that a level completed."""
         self.current_level = level_index + 1
@@ -228,4 +300,21 @@ class DagStateDoc:
         self.dag_status = "paused"
         self.steps_completed.append(
             f"{datetime.now().isoformat()} | — | — | PAUSED: {reason}"
+        )
+
+    def mark_resumed(self, level: int, reason: str = "") -> None:
+        """Resume a paused run.
+
+        Transitions from PAUSED back to RUNNING and records the resume
+        point in the step log.
+
+        Args:
+            level: The DAG level being resumed from.
+            reason: Optional context (e.g. 'merge conflict resolved').
+        """
+        self.status = DagRunStatus.RUNNING
+        self.dag_status = "running"
+        context = f" — {reason}" if reason else ""
+        self.steps_completed.append(
+            f"{datetime.now().isoformat()} | Level {level} | — | RESUMED{context}"
         )

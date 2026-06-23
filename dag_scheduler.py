@@ -230,6 +230,7 @@ def cmd_orchestrate(args: argparse.Namespace) -> int:
         max_concurrent=args.max_concurrent,
         dry_run=args.dry_run,
     )
+    orch.resume = args.resume
     orch.load_stories_from_dict(stories)
     result = orch.run_dag(
         architecture_context=args.architecture or "",
@@ -290,6 +291,8 @@ def main() -> int:
                         help="Model alias (default: sonnet)")
     p_orch.add_argument("--dry-run", action="store_true",
                         help="Simulate without tmux or git")
+    p_orch.add_argument("--resume", action="store_true",
+                        help="Resume from last incomplete DAG level")
     p_orch.set_defaults(func=cmd_orchestrate)
 
     args = parser.parse_args()
