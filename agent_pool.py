@@ -198,6 +198,12 @@ class AgentPool:
                 status=AgentStatus.FAILED,
                 error=f"tmux spawn failed: {e.stderr.strip()}",
             )
+        except FileNotFoundError:
+            return AgentResult(
+                node_id=node_id,
+                status=AgentStatus.FAILED,
+                error="tmux not found — is tmux installed?",
+            )
 
         session_id = session_name
         self._active_sessions[session_id] = {

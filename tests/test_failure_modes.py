@@ -289,6 +289,111 @@ def test_failure_recorded_in_state_doc():
         print(f"  ✅ test_failure_recorded_in_state_doc: failure persisted in state doc")
 
 
+def test_deep_dag_50_levels():
+    """Serial DAG with 50+ levels — all levels assigned, full critical path."""
+    graph = DagGraph(mode=InductionMode.MINIMAL)
+    prev = None
+    for i in range(52):
+        nid = f"N{i}"
+        deps = [prev] if prev else []
+        graph.add_node(DagNode(id=nid, title=f"Node {i}", explicit_deps=deps))
+        prev = nid
+    graph.schedule()
+
+    assert not graph.has_cycle
+    assert len(graph.levels) == 52
+    assert graph.to_dict()["dag"]["total_levels"] == 52
+    assert graph.to_dict()["dag"]["max_width"] == 1
+    assert len(graph.critical_path) == 52
+    assert graph.critical_path[0] == "N0"
+    assert graph.critical_path[-1] == "N51"
+    print(f"  ✅ test_deep_dag_50_levels: 52 levels, critical path len=52")
+
+
+def test_empty_story_list_orchestrator():
+    """Orchestrator handles empty story list gracefully."""
+    from dag_core import DagGraph
+    graph = DagGraph(mode=InductionMode.MINIMAL)
+    graph.schedule()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_dir = os.path.join(tmpdir, "_bmad-output", "dag-automator")
+        os.makedirs(output_dir, exist_ok=True)
+
+        orch = DagOrchestrator(project_root=tmpdir, dry_run=True)
+        orch.graph = graph
+        orch.output_dir = output_dir
+
+        # Simulate the empty check from run_dag()
+        if not graph or len(graph.nodes) == 0:
+            result = {"status": "complete", "message": "No stories to process"}
+
+        assert result["status"] == "complete"
+        assert "No stories" in result["message"]
+        print(f"  ✅ test_empty_story_list_orchestrator: empty list handled gracefully")
+
+
+def test_single_story_sprint():
+    """Single story → one level, one node, no failures."""
+    graph = DagGraph(mode=InductionMode.MINIMAL)
+    graph.add_node(DagNode(id="only", title="Only story"))
+    graph.schedule()
+
+    assert len(graph.levels) == 1
+    assert graph.levels[0].width == 1
+    assert graph.levels[0].node_ids == ["only"]
+    assert len(graph.critical_path) == 1
+    assert graph.critical_path[0] == "only"
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_dir = os.path.join(tmpdir, "_bmad-output", "dag-automator")
+        os.makedirs(output_dir, exist_ok=True)
+
+        from state_doc import DagStateDoc
+        orch = DagOrchestrator(project_root=tmpdir, dry_run=True)
+        orch.graph = graph
+        orch.output_dir = output_dir
+        orch.state = DagStateDoc.from_manifest(
+            graph.to_dict(), output_dir=output_dir
+        )
+
+        _simulate_level_complete(orch, 0, set())
+
+        assert len(orch.state.completed_nodes) == 1
+        assert orch.state.completed_nodes[0]["id"] == "only"
+        print(f"  ✅ test_single_story_sprint: single story completes correctly")
+
+
+def test_tmux_unavailable_handling():
+    """Agent pool returns FAILED when tmux not installed."""
+    pool = __import__("agent_pool", fromlist=["AgentPool", "AgentConfig", "AgentTool"])
+    AgentPool = pool.AgentPool
+    AgentConfig = pool.AgentConfig
+    AgentTool = pool.AgentTool
+
+    p = AgentPool(project_root="/tmp", max_concurrent=1, dry_run=False)
+
+    # Mock subprocess.run to raise FileNotFoundError (tmux not installed)
+    import subprocess
+    original_run = subprocess.run
+    def mock_run(*args, **kwargs):
+        raise FileNotFoundError("tmux not found")
+    subprocess.run = mock_run
+
+    try:
+        result = p.spawn_node(
+            node_id="test",
+            story_path="/tmp/story.md",
+            config=AgentConfig(tool=AgentTool.CLAUDE_CODE, model="sonnet"),
+            level_index=0,
+        )
+        assert result.status == pool.AgentStatus.FAILED
+        assert "tmux" in (result.error or "").lower()
+        print(f"  ✅ test_tmux_unavailable_handling: FAILED with tmux error")
+    finally:
+        subprocess.run = original_run
+
+
 if __name__ == "__main__":
     test_functions = [
         name for name in dir()

@@ -16,6 +16,7 @@ Flow per DAG level:
 from __future__ import annotations
 
 import os
+import signal
 import sys
 from datetime import datetime
 from typing import Any, Optional
@@ -233,6 +234,11 @@ class DagOrchestrator:
         if induction_result.get("status") == "error":
             return induction_result
 
+        # Edge case: empty story list
+        if not self.graph or len(self.graph.nodes) == 0:
+            print(f"     ⚠️  No stories to process — nothing to do", flush=True)
+            return {"status": "complete", "message": "No stories to process"}
+
         # Save manifest
         os.makedirs(self.output_dir, exist_ok=True)
         manifest_path = os.path.join(self.output_dir, "dag-manifest.yaml")
@@ -297,6 +303,18 @@ class DagOrchestrator:
                 return {"status": "error", "error": str(e)}
 
         failed_nodes_per_level: list[tuple[int, str, str]] = []
+
+        # SIGINT handler — save state and mark PAUSED on Ctrl+C
+        def _signal_handler(sig: int, frame) -> None:
+            print(f"\n     ⏹️  Interrupted (SIGINT). Saving state...", flush=True)
+            if self.state:
+                self.state.mark_paused("SIGINT — interrupted by user")
+                self.state.save(os.path.join(self.output_dir, "orchestration.md"))
+                print(f"     💾 State saved to {self.output_dir}/orchestration.md", flush=True)
+            print(f"     ℹ️  Resume later with: --resume", flush=True)
+            sys.exit(130)
+
+        signal.signal(signal.SIGINT, _signal_handler)
 
         for level_idx, level in enumerate(self.graph.levels):
             # Skip levels that were already completed in a prior resume run
